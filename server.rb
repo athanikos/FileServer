@@ -8,19 +8,32 @@ MEDIA_ROOT = File.expand_path('./media')
 
 post '/upload/:device_id' do
   device = params[:device_id]
-  FileUtils.mkdir_p("#{MEDIA_ROOT}/#{device}")
+  halt 400, "Missing device ID" unless device
 
-  if params[:file]
+  unless params[:file] &&
+         params[:file][:filename] &&
+         params[:file][:tempfile]
+    halt 400, "Missing or malformed file upload"
+  end
+
+  begin
+    FileUtils.mkdir_p("#{MEDIA_ROOT}/#{device}")
     filename = params[:file][:filename]
     tempfile = params[:file][:tempfile]
     path = File.join(MEDIA_ROOT, device, filename)
+
     File.open(path, 'wb') { |f| f.write(tempfile.read) }
-    status 200
-    "Uploaded #{filename}"
-  else
-    status 400
-    "No file uploaded"
+    status 201
+    "Uploaded #{filename} from #{device}"
+  rescue => e
+    puts "[ERROR] Upload failed: #{e.message}"
+    halt 500, "Internal Server Error"
   end
+end
+
+
+get '/view/phone01' do
+  "Hello World"
 end
 
 get '/media/:device_id/:filename' do
